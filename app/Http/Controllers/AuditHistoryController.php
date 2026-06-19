@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\SavedReport;
 use App\Services\Seo\ReportStorageService;
 use App\Services\Seo\SeoAuditRunner;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
 class AuditHistoryController extends Controller
@@ -64,6 +65,26 @@ class AuditHistoryController extends Controller
     {
         $audit = $this->storageService->getAuditDetail($id);
         return view('history.show', compact('audit'));
+    }
+
+    /**
+     * Экспорт выбранных отчётов проверки в PDF (открывается в новой вкладке).
+     */
+    public function exportPdf(Request $request, $auditId)
+    {
+        $audit = $this->storageService->getAuditDetail($auditId);
+
+        $urlIds = $request->input('url_ids', []);
+        $urls = ! empty($urlIds)
+            ? $audit->urls->whereIn('id', $urlIds)
+            : $audit->urls;
+
+        $pdf = Pdf::loadView('pdf.report', [
+            'audit' => $audit,
+            'urls' => $urls,
+        ]);
+
+        return $pdf->stream("seo-report-{$audit->id}.pdf");
     }
 
     /**
