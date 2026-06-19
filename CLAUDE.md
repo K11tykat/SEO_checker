@@ -26,10 +26,18 @@ SEO-чекер (Laravel 13 / PHP 8.3 / MySQL по спецификации, SQLi
 
 **Модель данных:** `Audit` (1) → много `AuditUrl` (1) → один `AuditResult`. У `Audit` есть `status` (`processing` → `completed`). `AuditResult` разворачивает каждую проверку в колонки (булевы `*_is_valid`, `*_error_reason`, длины, счётчики ссылок, булевы маркеры); `schema_formats` — каст JSON/array.
 
-**Веб-слой:** `routes/web.php` + `AuditHistoryController` обслуживают `/history` (список) и `/history/{id}` (детализация), рендерятся через `resources/views/history/*.blade.php`.
+**Сквозной конвейер (связан):**
+- **`ResultNormalizer`** — слой-адаптер: переводит вывод чекеров (`marker`/`error`) в формат, который ждёт `ReportStorageService::saveResultForUrl` (`['valid']`/`['reason']` + плоские ключи `http_code`, `external_links_nofollow`, `og_marker` и т.д.). `normalize()` — для успешной загрузки, `normalizeFailure()` — когда страница недоступна.
+- **`SeoAuditRunner::run(array $urls, ?int $userId)`** — оркестратор: для каждого URL `PageDownloader` → чекеры + `RootFilesChecker` → `ResultNormalizer` → `ReportStorageService`. Создаёт `Audit`, заполняет и завершает его. Все сервисы резолвятся через DI (конструкторы без обязательных аргументов).
 
-### Важно: конвейер ещё не связан от начала до конца
+**Веб-слой:** `routes/web.php` + `AuditHistoryController`:
+- `/` — главная (список истории) + модалка ввода URL (до 20).
+- `POST /audit/run` — запуск проверки (валидация: массив `urls`, `max:20`, каждый `url`).
+- `/audit/{id}/results` — результаты текущей проверки с чекбоксами выбора отчётов.
+- `POST /audit/{id}/pdf` — экспорт выбранных отчётов в PDF (`barryvdh/laravel-dompdf`, шаблон `resources/views/pdf/report.blade.php`, шрифт DejaVu Sans для кириллицы).
+- `POST /audit/{id}/save` — сохранение в избранное (`SavedReport` → таблица `saved_reports`).
+- `/history/{id}` — детальная историческая проверка.
 
-**Нет контроллера/сервиса, который прогонял бы чекеры по присланным пользователем URL и передавал результаты в `ReportStorageService`.** Вместо него стоят два «строительных» маршрута: `/test-seo` (прогоняет все чекеры по захардкоженному URL и выдаёт JSON) и `/test-audit` (пишет захардкоженный фейковый результат через `ReportStorageService`). `saveToFavorites` — заглушка (ничего не сохраняет, хотя таблица `saved_reports` существует).
+Отображение результата одного URL вынесено в partial `resources/views/partials/result-card.blade.php` (переиспользуется в результатах и истории); общий стиль — в `resources/views/layouts/app.blade.php`.
 
-Учти **несовпадение форматов**, которое нужно согласовать при связывании: чекеры выдают `marker`/`error`, а `ReportStorageService::saveResultForUrl` ждёт `$data[...]['valid']` / `['reason']` (и ключи верхнего уровня вроде `http_code`, `external_links_nofollow`, `og_marker`). Новый код, связывающий загрузку → проверку → сохранение, должен переводить один формат в другой (или нормализовать один из них).
+Тесты: `tests/Unit/CheckersTest.php` (чекеры + нормализатор), `tests/Feature/AuditFlowTest.php` (сквозной поток с `Http::fake`). PDF-тест помечается `skipped`, если пакет dompdf ещё не установлен.
