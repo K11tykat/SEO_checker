@@ -15,8 +15,8 @@ Route::get('/audit/{id}/results', [AuditHistoryController::class, 'results'])->n
 // Экспорт выбранных отчётов в PDF.
 Route::post('/audit/{id}/pdf', [AuditHistoryController::class, 'exportPdf'])->name('audit.pdf');
 
-// Сохранение выбранных отчётов в избранное.
-Route::post('/audit/{id}/save', [AuditHistoryController::class, 'saveToFavorites'])->name('audit.save');
+// Удаление проверки целиком.
+Route::delete('/audit/{id}', [AuditHistoryController::class, 'destroy'])->name('audit.destroy');
 
 // Детальная страница исторической проверки.
 Route::get('/history/{id}', [AuditHistoryController::class, 'show'])->name('history.show');
