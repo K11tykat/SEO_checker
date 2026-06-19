@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\SavedReport;
+use App\Models\Audit;
 use App\Services\Seo\ReportStorageService;
 use App\Services\Seo\SeoAuditRunner;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -88,22 +88,12 @@ class AuditHistoryController extends Controller
     }
 
     /**
-     * Сохранение проверки в избранное (таблица saved_reports — уровень аудита).
+     * Удаление проверки целиком (каскадом удаляются её URL и результаты).
      */
-    public function saveToFavorites(Request $request, $auditId)
+    public function destroy($id)
     {
-        $audit = $this->storageService->getAuditDetail($auditId);
+        Audit::findOrFail($id)->delete();
 
-        SavedReport::firstOrCreate([
-            'audit_id' => $audit->id,
-            'user_id' => $request->user()?->id,
-        ]);
-
-        $count = count($request->input('url_ids', []));
-        $message = $count > 0
-            ? "Отчёт сохранён в избранное (выбрано отчётов: {$count})."
-            : 'Отчёт сохранён в избранное.';
-
-        return redirect()->route('audit.results', $audit->id)->with('success', $message);
+        return redirect()->route('history.index')->with('success', 'Проверка удалена.');
     }
 }
