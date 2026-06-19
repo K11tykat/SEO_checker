@@ -25,6 +25,8 @@
         .btn:hover { background: #0052a3; text-decoration: none; }
         .btn-secondary { background: #4b5563; }
         .btn-secondary:hover { background: #374151; }
+        .btn-danger { background: #d1242f; }
+        .btn-danger:hover { background: #a91622; }
         .btn-row { display: flex; gap: 10px; margin: 18px 0; flex-wrap: wrap; }
         .flash { padding: 10px 14px; border-radius: 6px; margin: 12px 0; }
         .flash-success { background: #e6f4ea; color: #1a7f37; }

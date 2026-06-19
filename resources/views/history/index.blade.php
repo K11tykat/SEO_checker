@@ -30,7 +30,16 @@
                 <p><strong>Проверка #{{ $audit->id }}</strong></p>
                 <p class="muted">Дата: {{ $audit->created_at->format('d.m.Y H:i') }}</p>
                 <p class="muted">Статус: {{ $audit->status }} · Страниц: {{ count($audit->urls) }}</p>
-                <a href="{{ route('history.show', $audit->id) }}">Подробнее →</a>
+                <div class="btn-row" style="margin:8px 0 0;">
+                    <a href="{{ route('history.show', $audit->id) }}">Подробнее →</a>
+                    <form method="POST" action="{{ route('audit.destroy', $audit->id) }}"
+                          onsubmit="return confirm('Удалить проверку #{{ $audit->id }}? Это действие необратимо.')"
+                          style="margin-left:auto;">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn btn-danger">Удалить</button>
+                    </form>
+                </div>
             </div>
         @endforeach
 
