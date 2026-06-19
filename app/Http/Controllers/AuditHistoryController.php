@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\SavedReport;
 use App\Services\Seo\ReportStorageService;
 use App\Services\Seo\SeoAuditRunner;
 use Illuminate\Http\Request;
@@ -65,8 +66,23 @@ class AuditHistoryController extends Controller
         return view('history.show', compact('audit'));
     }
 
-    public function saveToFavorites($auditId)
+    /**
+     * Сохранение проверки в избранное (таблица saved_reports — уровень аудита).
+     */
+    public function saveToFavorites(Request $request, $auditId)
     {
-        return redirect()->back()->with('success', 'Отчет сохранен в БД');
+        $audit = $this->storageService->getAuditDetail($auditId);
+
+        SavedReport::firstOrCreate([
+            'audit_id' => $audit->id,
+            'user_id' => $request->user()?->id,
+        ]);
+
+        $count = count($request->input('url_ids', []));
+        $message = $count > 0
+            ? "Отчёт сохранён в избранное (выбрано отчётов: {$count})."
+            : 'Отчёт сохранён в избранное.';
+
+        return redirect()->route('audit.results', $audit->id)->with('success', $message);
     }
 }
