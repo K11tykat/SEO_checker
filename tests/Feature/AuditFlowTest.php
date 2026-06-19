@@ -73,16 +73,18 @@ class AuditFlowTest extends TestCase
             ->assertSessionHasErrors('urls.0');
     }
 
-    public function test_save_to_favorites_persists_row(): void
+    public function test_delete_removes_audit_and_its_results(): void
     {
         $this->fakePages();
         $this->post('/audit/run', ['urls' => ['https://mysite.test']]);
         $audit = Audit::first();
 
-        $this->post(route('audit.save', $audit->id), ['url_ids' => []])
-            ->assertRedirect(route('audit.results', $audit->id));
+        $this->delete(route('audit.destroy', $audit->id))
+            ->assertRedirect(route('history.index'));
 
-        $this->assertDatabaseHas('saved_reports', ['audit_id' => $audit->id]);
+        $this->assertDatabaseMissing('audits', ['id' => $audit->id]);
+        $this->assertDatabaseMissing('audit_urls', ['audit_id' => $audit->id]);
+        $this->assertSame(0, \App\Models\AuditResult::count());
     }
 
     public function test_pdf_export_returns_pdf_document(): void
