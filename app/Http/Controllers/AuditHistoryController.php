@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\Seo\ReportStorageService;
 use Illuminate\Http\Request;
+use App\Models\SavedReport;
 
 class AuditHistoryController extends Controller
 {
@@ -30,4 +31,11 @@ class AuditHistoryController extends Controller
     {
         return redirect()->back()->with('success', 'Отчет сохранен в БД');
     }
+
+
+public function savedReports()
+{
+    $savedReports = SavedReport::with('audit')->orderBy('created_at', 'desc')->get();
+    return view('history.saved', compact('savedReports'));
+}
 }

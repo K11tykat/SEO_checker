@@ -8,10 +8,13 @@ use Exception;
 
 class PageDownloader
 {
-
+    /**
+     * Загружает страницу и собирает данные ответа сервера
+     */
     public function download(string $url): array
     {
         try {
+            // Включаем отслеживание редиректов
             $response = Http::withOptions([
                 'allow_redirects' => [
                     'track_redirects' => true
@@ -21,6 +24,7 @@ class PageDownloader
 
             $statusCode = $response->status();
             
+            // Определяем финальный URL после возможных редиректов
             $redirectLog = $response->handlerStats()['redirect_log'] ?? [];
             $finalUrl = !empty($redirectLog) ? (string) end($redirectLog) : $url;
 

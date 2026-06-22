@@ -6,41 +6,31 @@ use Illuminate\Support\Facades\Http;
 
 class RootFilesChecker
 {
-
-    public function checkFile(string $baseUrl, string $fileName): array
+    public function checkFile($url, $filename)
     {
-        $parsedUrl = parse_url($baseUrl);
-        $scheme = $parsedUrl['scheme'] ?? 'http';
-        $host = $parsedUrl['host'] ?? '';
+        // Получаем корневой URL
+        $parsedUrl = parse_url($url);
+        $baseUrl = $parsedUrl['scheme'] . '://' . $parsedUrl['host'];
         
-        if (empty($host)) {
-            return [
-                'marker' => 'red',
-                'error' => 'Некорректный URL для проверки файла ' . $fileName
-            ];
-        }
-
-        $rootUrl = "{$scheme}://{$host}/" . ltrim($fileName, '/');
-
+        // Формируем полный URL к файлу
+        $fileUrl = rtrim($baseUrl, '/') . '/' . ltrim($filename, '/');
+        
         try {
-            $response = Http::timeout(5)->get($rootUrl);
-
-            if ($response->successful()) {
-                return [
-                    'marker' => 'green',
-                    'error' => null
-                ];
-            }
-
+            $response = Http::timeout(5)->get($fileUrl);
+            
+            // Проверяем, что файл существует (код 200)
+            $exists = $response->status() === 200;
+            
             return [
-                'marker' => 'red',
-                'error' => "Файл не найден. Код ответа сервера: " . $response->status()
+                'exists' => $exists,
+                'url' => $fileUrl,
+                'status_code' => $response->status()
             ];
-
         } catch (\Exception $e) {
             return [
-                'marker' => 'red',
-                'error' => "Ошибка при запросе к файлу: " . $e->getMessage()
+                'exists' => false,
+                'url' => $fileUrl,
+                'error' => $e->getMessage()
             ];
         }
     }

@@ -14,18 +14,21 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// Тестовый маршрут для проверки Пункта 1
 Route::get('/test-seo', function() {
     $url = 'https://laravel.com'; 
     
     $downloader = new PageDownloader();
     $fileChecker = new RootFilesChecker();
     
+    // Инициализация всех чекеров
     $titleChecker = new TitleChecker();
     $descriptionChecker = new DescriptionChecker();
     $headingChecker = new HeadingChecker();
     $linksChecker = new LinksChecker();
     $microdataChecker = new MicrodataChecker();
     
+    // 1. Загрузка контента
     $pageData = $downloader->download($url);
     
     if (!$pageData['success']) {
@@ -34,15 +37,18 @@ Route::get('/test-seo', function() {
     
     $crawler = $pageData['crawler'];
     
+    // 2. Запуск полного цикла проверок
     $titleResult = $titleChecker->check($crawler);
     $descriptionResult = $descriptionChecker->check($crawler);
     $headingResult = $headingChecker->check($crawler);
     $linksResult = $linksChecker->check($crawler, $url);
     $microdataResult = $microdataChecker->check($crawler);
     
+    // 3. Проверка файлов в корне
     $robotsResult = $fileChecker->checkFile($url, 'robots.txt');
     $sitemapResult = $fileChecker->checkFile($url, 'sitemap.xml');
     
+    // Сборка финального отчета
     return response()->json([
         'target_url' => $url,
         'server_response' => [
@@ -93,3 +99,12 @@ Route::get('/test-audit', function () {
     $service->completeAudit($audit);
     return 'Тестовая проверка создана. Перейди на /history';
 });
+
+use App\Http\Controllers\SeoCheckController;
+
+Route::get('/saved-reports', [AuditHistoryController::class, 'savedReports'])->name('saved.reports');
+Route::post('/save-report/{auditId}', [SeoCheckController::class, 'saveReport'])->name('save.report');
+Route::post('/run-check', [SeoCheckController::class, 'run'])->name('run.check');
+Route::get('/results/{auditId}', [SeoCheckController::class, 'results'])->name('results');
+Route::post('/results/{auditId}/save', [SeoCheckController::class, 'saveToFavorites'])->name('results.save');
+Route::get('/results/{auditId}/pdf', [SeoCheckController::class, 'downloadPdf'])->name('results.pdf');

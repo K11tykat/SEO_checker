@@ -8,6 +8,7 @@ class HeadingChecker
 {
     public function check(Crawler $crawler): array
     {
+        // 1. Проверка одиночного H1
         $h1Tags = $crawler->filter('h1');
         $h1Count = $h1Tags->count();
         
@@ -22,6 +23,7 @@ class HeadingChecker
             $h1Result = ['marker' => 'red', 'error' => "Заголовок h1 найден в нескольких экземплярах (всего: {$h1Count})"];
         }
 
+        // 2. Проверка структуры заголовков h1-h6
         $structureResult = $this->checkStructure($crawler);
 
         return [
@@ -32,6 +34,7 @@ class HeadingChecker
 
     private function checkStructure(Crawler $crawler): array
     {
+        // Собираем все заголовки по порядку их появления в DOM
         $headings = $crawler->filter('h1, h2, h3, h4, h5, h6')->each(function (Crawler $node) {
             return [
                 'level' => (int) substr($node->nodeName(), 1),
@@ -40,13 +43,15 @@ class HeadingChecker
         });
 
         if (empty($headings)) {
-            return ['marker' => 'green', 'error' => null]; 
+            return ['marker' => 'green', 'error' => null]; // Заголовков нет — нарушений нет
         }
 
+        // Правило 1: Первым должен идти h1
         if ($headings[0]['level'] !== 1) {
             return ['marker' => 'red', 'error' => "Структура невалидна: первым на странице встретился заголовок h{$headings[0]['level']}, а должен быть h1"];
         }
 
+        // Правило 2: Соблюдение иерархии (например, h4 не может идти сразу после h2, минуя h3)
         $maxAllowedLevel = 1;
 
         foreach ($headings as $heading) {
@@ -59,6 +64,7 @@ class HeadingChecker
                 ];
             }
 
+            // Обновляем максимальный уровень, до которого мы "докопались"
             if ($currentLevel > $maxAllowedLevel) {
                 $maxAllowedLevel = $currentLevel;
             }
